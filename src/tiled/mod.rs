@@ -100,7 +100,7 @@ impl Plugin for TiledPlugin {
         app.register_type::<TiledPluginConfig>();
 
         app.add_plugins((
-            MapLoaderPlugin{ config: self.0.clone() },
+            MapPlugin{ config: self.0.clone() },
             world::plugin,
             animation::plugin,
             cache::plugin,

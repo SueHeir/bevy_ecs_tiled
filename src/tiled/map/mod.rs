@@ -140,7 +140,7 @@ pub struct MapPlugin {
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-         app.register_type::<TiledMap>();
+        app.register_type::<TiledMap>();
         app.register_type::<TiledMapLayerZOffset>();
         app.register_type::<TiledMapImageRepeatMargin>();
         app.register_type::<TiledMapReference>();
@@ -156,6 +156,7 @@ impl Plugin for MapPlugin {
         );
 
         app.add_plugins((asset::plugin, loader::MapLoaderPlugin{ config: self.config.clone() }, storage::plugin));
+
 
     }
 }
