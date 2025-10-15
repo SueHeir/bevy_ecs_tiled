@@ -91,25 +91,25 @@ pub(crate) fn spawn_map(
 
         match layer.layer_type() {
             LayerType::Tiles(tile_layer) => {
-                if !config.disable_rendering {
-                    commands.entity(layer_entity).insert((
-                        Name::new(format!("TiledMapTileLayer({})", layer.name)),
-                        TiledLayer::Tiles,
-                    ));
-                    spawn_tiles_layer(
-                        commands,
-                        tiled_map,
-                        &layer_event,
-                        layer,
-                        tile_layer,
-                        render_settings,
-                        &mut map_storage.tiles,
-                        &mut tilemap_events,
-                        &mut tile_events,
-                        anchor,
-                        config,
-                    );
-                }
+               
+                commands.entity(layer_entity).insert((
+                    Name::new(format!("TiledMapTileLayer({})", layer.name)),
+                    TiledLayer::Tiles,
+                ));
+                spawn_tiles_layer(
+                    commands,
+                    tiled_map,
+                    &layer_event,
+                    layer,
+                    tile_layer,
+                    render_settings,
+                    &mut map_storage.tiles,
+                    &mut tilemap_events,
+                    &mut tile_events,
+                    anchor,
+                    config,
+                );
+                
             }
             LayerType::Objects(object_layer) => {
                 commands.entity(layer_entity).insert((

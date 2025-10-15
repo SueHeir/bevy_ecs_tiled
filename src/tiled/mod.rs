@@ -91,48 +91,28 @@ impl Plugin for TiledPlugin {
             if !app.is_plugin_added::<bevy_ecs_tilemap::TilemapPlugin>() {
                 app = app.add_plugins(bevy_ecs_tilemap::TilemapPlugin);
             }
-
-
-            app.insert_resource(self.0.clone());
-            app.insert_resource(cache::TiledResourceCache::new());
-            app.register_type::<TiledPluginConfig>();
-
-            app.add_plugins((
-                map::plugin,
-                world::plugin,
-                animation::plugin,
-                cache::plugin,
-                event::plugin,
-                image::plugin,
-                layer::plugin,
-                object::plugin,
-                tile::plugin,
-                sets::plugin,
-                filter::plugin,
-                #[cfg(feature = "user_properties")]
-                properties::plugin,
-            ));
-        } else {
-            app.insert_resource(self.0.clone());
-            app.insert_resource(cache::TiledResourceCache::new());
-            app.register_type::<TiledPluginConfig>();
-
-            app.add_plugins((
-                map::plugin,
-                world::plugin,
-                cache::plugin,
-                event::plugin,
-                layer::plugin,
-                object::plugin,
-                tile::plugin,
-                sets::plugin,
-                filter::plugin,
-                #[cfg(feature = "user_properties")]
-                properties::plugin,
-            ));
         }
 
        
 
+        app.insert_resource(self.0.clone());
+        app.insert_resource(cache::TiledResourceCache::new());
+        app.register_type::<TiledPluginConfig>();
+
+        app.add_plugins((
+            map::plugin,
+            world::plugin,
+            animation::plugin,
+            cache::plugin,
+            event::plugin,
+            image::plugin,
+            layer::plugin,
+            object::plugin,
+            tile::plugin,
+            sets::plugin,
+            filter::plugin,
+            #[cfg(feature = "user_properties")]
+            properties::plugin,
+        ));
     }
 }
