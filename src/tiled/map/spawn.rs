@@ -193,7 +193,7 @@ fn spawn_tiles_layer(
     layer_event: &TiledEvent<LayerCreated>,
     layer: Layer,
     tiles_layer: TileLayer,
-    _render_settings: &TilemapRenderSettings,
+    render_settings: &TilemapRenderSettings,
     entity_map: &mut HashMap<(u32, TileId), Vec<Entity>>,
     tilemap_events: &mut Vec<TiledEvent<TilemapCreated>>,
     tile_events: &mut Vec<TiledEvent<TileCreated>>,
@@ -251,30 +251,32 @@ fn spawn_tiles_layer(
 
         #[cfg(feature = "render")]
         {
-            let grid_size = grid_size_from_map(&tiled_map.map);
-            commands.entity(tilemap_entity).insert(TilemapBundle {
-                grid_size,
-                size: tiled_map.tilemap_size,
-                storage: _tile_storage,
-                texture: t.tilemap_texture.clone(),
-                tile_size: TilemapTileSize {
-                    x: tileset.tile_width as f32,
-                    y: tileset.tile_height as f32,
-                },
-                spacing: TilemapSpacing {
-                    x: tileset.spacing as f32,
-                    y: tileset.spacing as f32,
-                },
-                transform: Transform::from_xyz(
-                    tileset.offset_x as f32,
-                    -tileset.offset_y as f32,
-                    0.0,
-                ),
-                map_type: tilemap_type_from_map(&tiled_map.map),
-                render_settings: *_render_settings,
-                anchor: *_anchor,
-                ..default()
-            });
+            if !render_settings.disable {
+                let grid_size = grid_size_from_map(&tiled_map.map);
+                commands.entity(tilemap_entity).insert(TilemapBundle {
+                    grid_size,
+                    size: tiled_map.tilemap_size,
+                    storage: _tile_storage,
+                    texture: t.tilemap_texture.clone(),
+                    tile_size: TilemapTileSize {
+                        x: tileset.tile_width as f32,
+                        y: tileset.tile_height as f32,
+                    },
+                    spacing: TilemapSpacing {
+                        x: tileset.spacing as f32,
+                        y: tileset.spacing as f32,
+                    },
+                    transform: Transform::from_xyz(
+                        tileset.offset_x as f32,
+                        -tileset.offset_y as f32,
+                        0.0,
+                    ),
+                    map_type: tilemap_type_from_map(&tiled_map.map),
+                    render_settings: *render_settings,
+                    anchor: *_anchor,
+                    ..default()
+                });
+              }
         }
     }
 }
