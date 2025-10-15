@@ -175,6 +175,7 @@ fn process_loaded_maps(
         )>,
     >,
     mut message_writers: TiledMessageWriters,
+    config: Res<TiledPluginConfig>,
 ) {
     for (map_entity, map_handle, mut tiled_storage, render_settings, anchor, layer_offset) in
         map_query.iter_mut()
@@ -221,6 +222,7 @@ fn process_loaded_maps(
                 layer_offset,
                 &mut message_writers,
                 anchor,
+                &config
             );
 
             // Remove the respawn marker

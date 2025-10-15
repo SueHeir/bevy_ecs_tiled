@@ -52,6 +52,9 @@ pub struct TiledPluginConfig {
     ///
     /// Only types matching this filter will be exported at startup.
     pub tiled_types_filter: TiledFilter,
+
+    /// Disable all rendering of tilemaps.
+    pub disable_rendering: bool,
 }
 
 impl Default for TiledPluginConfig {
@@ -61,6 +64,7 @@ impl Default for TiledPluginConfig {
         Self {
             tiled_types_export_file: Some(path),
             tiled_types_filter: TiledFilter::All,
+            disable_rendering: false,
         }
     }
 }

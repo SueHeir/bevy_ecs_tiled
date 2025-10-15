@@ -5,7 +5,7 @@
 //! enabling the rendering and interaction of Tiled maps within a Bevy application.
 
 use crate::{prelude::*, tiled::event::TiledMessageWriters, tiled::layer::TiledLayerParallax};
-use bevy::{prelude::*, sprite::Anchor};
+use bevy::{gizmos::config, prelude::*, sprite::Anchor};
 use bevy_ecs_tilemap::prelude::{
     AnimatedTile, IsoCoordSystem, TileBundle, TileFlip, TileStorage, TileTextureIndex, TilemapId,
     TilemapTexture,
@@ -30,6 +30,7 @@ pub(crate) fn spawn_map(
     layer_z_offset: &TiledMapLayerZOffset,
     message_writers: &mut TiledMessageWriters,
     anchor: &TilemapAnchor,
+    config: &TiledPluginConfig,
 ) {
     commands.entity(map_entity).insert(Name::new(format!(
         "TiledMap: {}",
@@ -105,6 +106,7 @@ pub(crate) fn spawn_map(
                     &mut tilemap_events,
                     &mut tile_events,
                     anchor,
+                    config,
                 );
             }
             LayerType::Objects(object_layer) => {
@@ -198,6 +200,7 @@ fn spawn_tiles_layer(
     tilemap_events: &mut Vec<TiledEvent<TilemapCreated>>,
     tile_events: &mut Vec<TiledEvent<TileCreated>>,
     _anchor: &TilemapAnchor,
+    config: &TiledPluginConfig,
 ) {
     // The `TilemapBundle` requires that all tile images come exclusively from a single
     // tiled texture or from a Vec of independent per-tile images. Furthermore, all of
@@ -251,7 +254,7 @@ fn spawn_tiles_layer(
 
         #[cfg(feature = "render")]
         {
-            if !render_settings.disable {
+            if !config.disable_rendering {
                 let grid_size = grid_size_from_map(&tiled_map.map);
                 commands.entity(tilemap_entity).insert(TilemapBundle {
                     grid_size,
