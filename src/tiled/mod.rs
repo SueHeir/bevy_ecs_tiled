@@ -20,7 +20,7 @@ pub mod world;
 #[cfg(feature = "user_properties")]
 pub mod properties;
 
-use crate::prelude::*;
+use crate::{prelude::*, tiled::map::loader::MapLoaderPlugin};
 use bevy::prelude::*;
 use std::{env, path::PathBuf};
 
@@ -100,7 +100,7 @@ impl Plugin for TiledPlugin {
         app.register_type::<TiledPluginConfig>();
 
         app.add_plugins((
-            map::plugin,
+            MapLoaderPlugin{ config: self.0.clone() },
             world::plugin,
             animation::plugin,
             cache::plugin,

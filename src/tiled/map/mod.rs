@@ -133,24 +133,33 @@ pub struct TiledMapReference(pub Entity);
 #[reflect(Component, Default, Debug)]
 pub struct RespawnTiledMap;
 
-pub(crate) fn plugin(app: &mut bevy::prelude::App) {
-    app.register_type::<TiledMap>();
-    app.register_type::<TiledMapLayerZOffset>();
-    app.register_type::<TiledMapImageRepeatMargin>();
-    app.register_type::<TiledMapReference>();
-    app.register_type::<RespawnTiledMap>();
-
-    app.add_systems(
-        PreUpdate,
-        process_loaded_maps.in_set(TiledPreUpdateSystems::ProcessLoadedMaps),
-    );
-    app.add_systems(
-        PostUpdate,
-        handle_map_events.in_set(TiledPostUpdateSystems::HandleMapAssetEvents),
-    );
-
-    app.add_plugins((asset::plugin, loader::plugin, storage::plugin));
+#[derive(Debug)]
+pub struct MapPlugin {
+    pub config: TiledPluginConfig,
 }
+
+impl Plugin for MapPlugin {
+    fn build(&self, app: &mut App) {
+         app.register_type::<TiledMap>();
+        app.register_type::<TiledMapLayerZOffset>();
+        app.register_type::<TiledMapImageRepeatMargin>();
+        app.register_type::<TiledMapReference>();
+        app.register_type::<RespawnTiledMap>();
+
+        app.add_systems(
+            PreUpdate,
+            process_loaded_maps.in_set(TiledPreUpdateSystems::ProcessLoadedMaps),
+        );
+        app.add_systems(
+            PostUpdate,
+            handle_map_events.in_set(TiledPostUpdateSystems::HandleMapAssetEvents),
+        );
+
+        app.add_plugins((asset::plugin, loader::MapLoaderPlugin{ config: self.config.clone() }, storage::plugin));
+
+    }
+}
+
 
 /// System to spawn a map once it has been fully loaded.
 fn process_loaded_maps(
