@@ -65,7 +65,7 @@ impl AssetLoader for TiledMapLoader {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;
 
-        debug!("Start loading map '{}'", load_context.path().display());
+        info!("Start loading map '{}'", load_context.path().display());
 
         let map_path = load_context.path().to_path_buf();
         let map = {
@@ -86,7 +86,7 @@ impl AssetLoader for TiledMapLoader {
         let mut tilesets_label_by_index = HashMap::<u32, String>::default();
 
         for (tileset_index, tileset) in map.tilesets().iter().enumerate() {
-            debug!(
+            info!(
                 "Loading tileset (index={:?} name={:?}) from {:?}",
                 tileset_index, tileset.name, tileset.source
             );
