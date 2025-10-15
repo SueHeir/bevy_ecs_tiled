@@ -20,7 +20,7 @@ pub mod world;
 #[cfg(feature = "user_properties")]
 pub mod properties;
 
-use crate::{prelude::*, tiled::map::loader::MapLoaderPlugin};
+use crate::{prelude::*, tiled::map::{loader::MapLoaderPlugin, MapPlugin}};
 use bevy::prelude::*;
 use std::{env, path::PathBuf};
 
