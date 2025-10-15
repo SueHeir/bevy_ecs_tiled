@@ -491,25 +491,25 @@ impl AssetLoader for TiledMapLoaderNoRender {
         let mut tilesets = HashMap::default();
         let mut tilesets_label_by_index = HashMap::<u32, String>::default();
 
-        for (tileset_index, tileset) in map.tilesets().iter().enumerate() {
-            info!(
-                "Loading tileset (index={:?} name={:?}) from {:?}",
-                tileset_index, tileset.name, tileset.source
-            );
+        // for (tileset_index, tileset) in map.tilesets().iter().enumerate() {
+        //     info!(
+        //         "Loading tileset (index={:?} name={:?}) from {:?}",
+        //         tileset_index, tileset.name, tileset.source
+        //     );
 
-            let Some(label) = tileset_label(tileset) else {
-                continue;
-            };
+        //     let Some(label) = tileset_label(tileset) else {
+        //         continue;
+        //     };
 
-            let Some(tiled_map_tileset) =
-                tileset_to_tiled_map_tileset(tileset.clone(), load_context, &label)
-            else {
-                continue;
-            };
+        //     let Some(tiled_map_tileset) =
+        //         tileset_to_tiled_map_tileset(tileset.clone(), load_context, &label)
+        //     else {
+        //         continue;
+        //     };
 
-            tilesets_label_by_index.insert(tileset_index as u32, label.to_owned());
-            tilesets.insert(label.to_owned(), tiled_map_tileset);
-        }
+        //     tilesets_label_by_index.insert(tileset_index as u32, label.to_owned());
+        //     tilesets.insert(label.to_owned(), tiled_map_tileset);
+        // }
 
         let mut images = HashMap::default();
         let mut largest_tile_size = TilemapTileSize::new(grid_size.x, grid_size.y);
@@ -668,7 +668,7 @@ impl AssetLoader for TiledMapLoaderNoRender {
 
         #[cfg(feature = "user_properties")]
         trace!(?properties, "user properties");
-        trace!(?tilesets, "tilesets");
+        info!(?tilesets, "tilesets");
 
         let asset_map = TiledMapAsset {
             map,
@@ -684,7 +684,7 @@ impl AssetLoader for TiledMapLoaderNoRender {
             #[cfg(feature = "user_properties")]
             properties,
         };
-        debug!(
+        info!(
             "Loaded map '{}': {:?}",
             load_context.path().display(),
             &asset_map,
