@@ -2,6 +2,33 @@
 
 ## [unreleased]
 
+## v0.11.2
+
+### Documentation
+
+- Fix doc.rs build
+
+## v0.11.1
+
+### Features
+
+- Add back support for Avian physics
+
+## v0.11.0
+
+**BREAKING CHANGES**
+This version brings breaking changes.
+A [migration guide](https://adrien-bon.github.io/bevy_ecs_tiled/migrations/v0_11.html) is available to help adapt to these.
+
+**SPECIAL CONSIDERATIONS**
+To ensure timely compatibility with Bevy v0.18, physics features depending on external crates have been temporarily disabled.
+They will be restored once the external crates release versions compatible with Bevy v0.18.
+
+### Features
+
+- Update for Bevy v0.18
+- Add a `TiledName` component to hold the name used in the Tiled editor for layers, tilesets (ie. TiledTilemap entities) and objects (#177)
+
 ## v0.10.0
 
 **BREAKING CHANGES**
@@ -11,11 +38,15 @@ A [migration guide](https://adrien-bon.github.io/bevy_ecs_tiled/migrations/v0_10
 ### Features
 
 - Update for Bevy v0.17
+- Properly re-export external dependencies types (#152)
+- Try to stabilize custom properties IDs by sorting Bevy registry before usage
+- Add a new `demo_platformer` example to illustrates some key concepts (#79)
 
 ### Changed
 
 - Rename `TiledColliderOrigin` to `TiledColliderSource`
 - Improve `ColliderCreated` event so it now includes a direct reference to the collider's parent entity
+- Remove dependency against `iyes_perf_ui` for examples
 
 ## v0.9.6
 

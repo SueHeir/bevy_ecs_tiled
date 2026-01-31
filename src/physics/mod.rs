@@ -10,7 +10,6 @@ pub mod settings;
 
 use crate::prelude::*;
 use bevy::prelude::*;
-use collider::spawn_colliders;
 
 /// Physics plugin.
 ///
@@ -29,7 +28,7 @@ use collider::spawn_colliders;
 ///
 /// We provide several [`TiledPhysicsBackend`] that can be used out of the box:
 /// - [`TiledPhysicsAvianBackend`]: for the Avian 2D physics engine
-/// - [`TiledPhysicsRapierBackend`]: for the Rapier 2D physics engine
+// /// - [`TiledPhysicsRapierBackend`]: for the Rapier 2D physics engine
 ///
 #[derive(Default, Copy, Clone, Debug)]
 pub struct TiledPhysicsPlugin<T: TiledPhysicsBackend>(std::marker::PhantomData<T>);
@@ -69,7 +68,7 @@ fn collider_from_tiles_layer<T: TiledPhysicsBackend>(
         };
 
         if settings.tiles_layer_filter.matches(&layer.name) {
-            spawn_colliders::<T>(
+            collider::spawn_colliders::<T>(
                 &settings.backend,
                 &mut commands,
                 &assets,
@@ -109,7 +108,7 @@ fn collider_from_object<T: TiledPhysicsBackend>(
         if settings.objects_layer_filter.matches(&layer.name)
             && settings.objects_filter.matches(&object.name)
         {
-            spawn_colliders::<T>(
+            collider::spawn_colliders::<T>(
                 &settings.backend,
                 &mut commands,
                 &assets,

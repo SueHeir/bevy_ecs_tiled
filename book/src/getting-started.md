@@ -3,8 +3,8 @@ Add the required dependencies to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-bevy = "0.16"
-bevy_ecs_tiled = "0.9"
+bevy = "0.18"
+bevy_ecs_tiled = "0.11"
 ```
 
 ### Basic Usage
@@ -109,6 +109,6 @@ fn spawn_map(
 
 ### More Examples
 
-For more advanced use cases, such as loading worlds, chunking, custom properties, or integrating with physics, see the [examples directory](https://github.com/adrien-bon/bevy_ecs_tiled/tree/main/examples/README.md) in the repository.
+For more advanced use cases, such as loading worlds, chunking, custom properties, or integrating with physics, see the [examples directory](https://github.com/adrien-bon/bevy_ecs_tiled/tree/main/examples/README.md) in the repository and notably the [demo_platformer](https://github.com/adrien-bon/bevy_ecs_tiled/tree/main/examples/demo_platformer/).
 
 You can also refer to the [API documentation](https://docs.rs/bevy_ecs_tiled/latest/bevy_ecs_tiled/) for details on all available components and configuration options.

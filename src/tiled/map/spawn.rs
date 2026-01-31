@@ -65,6 +65,7 @@ pub(crate) fn spawn_map(
             .spawn((
                 ChildOf(map_entity),
                 TiledMapReference(map_entity),
+                TiledName(layer.name.clone()),
                 // Apply layer Transform using both layer base Transform and Tiled offset
                 layer_transform,
                 // Determine layer default visibility
@@ -111,7 +112,7 @@ pub(crate) fn spawn_map(
                 );
                 
             }
-            LayerType::Objects(object_layer) => {
+            tiled::LayerType::Objects(object_layer) => {
                 commands.entity(layer_entity).insert((
                     Name::new(format!("TiledMapObjectLayer({})", layer.name)),
                     TiledLayer::Objects,
@@ -126,14 +127,14 @@ pub(crate) fn spawn_map(
                     anchor,
                 );
             }
-            LayerType::Group(_group_layer) => {
+            tiled::LayerType::Group(_group_layer) => {
                 commands.entity(layer_entity).insert((
                     Name::new(format!("TiledMapGroupLayer({})", layer.name)),
                     TiledLayer::Group,
                 ));
                 warn!("Group layers are not yet implemented");
             }
-            LayerType::Image(image_layer) => {
+            tiled::LayerType::Image(image_layer) => {
                 commands.entity(layer_entity).insert((
                     Name::new(format!("TiledMapImageLayer({})", layer.name)),
                     TiledLayer::Image,
@@ -232,6 +233,7 @@ fn spawn_tiles_layer(
                 Name::new(format!("TiledTilemap({}, {})", layer.name, tileset.name)),
                 TiledMapReference(layer_event.get_map_entity().unwrap()),
                 TiledTilemap,
+                TiledName(tileset.name.clone()),
                 ChildOf(layer_event.origin),
             ))
             .id();
@@ -293,8 +295,8 @@ fn spawn_tiles(
     layer_entity: Entity,
     tilemap_texture: &TilemapTexture,
     tileset_id: u32,
-    tiles_layer: &TileLayer,
-    entity_map: &mut HashMap<(u32, TileId), Vec<Entity>>,
+    tiles_layer: &tiled::TileLayer,
+    entity_map: &mut HashMap<(u32, tiled::TileId), Vec<Entity>>,
     tile_events: &mut Vec<TiledEvent<TileCreated>>,
 ) -> TileStorage {
     let tilemap_size = tiled_map.tilemap_size;
@@ -384,7 +386,7 @@ fn spawn_objects_layer(
     commands: &mut Commands,
     tiled_map: &TiledMapAsset,
     layer_event: &TiledEvent<LayerCreated>,
-    object_layer: ObjectLayer,
+    object_layer: tiled::ObjectLayer,
     entity_map: &mut HashMap<u32, Entity>,
     object_events: &mut Vec<TiledEvent<ObjectCreated>>,
     anchor: &TilemapAnchor,
@@ -427,6 +429,7 @@ fn spawn_objects_layer(
                 ChildOf(layer_event.origin),
                 TiledMapReference(layer_event.get_map_entity().unwrap()),
                 tiled_object,
+                TiledName(object_data.name.clone()),
                 transform,
                 match &object_data.visible {
                     true => Visibility::Inherited,
@@ -473,7 +476,7 @@ fn spawn_objects_layer(
 }
 
 fn handle_tile_object(
-    object: &Object,
+    object: &tiled::Object,
     tiled_map: &TiledMapAsset,
 ) -> (Option<(Sprite, Transform)>, Option<TiledAnimation>) {
     let Some(tile) = (*object).get_tile() else {
@@ -486,14 +489,14 @@ fn handle_tile_object(
     };
 
     let label = match tile.tileset_location() {
-        TilesetLocation::Map(tileset_index) => {
+        tiled::TilesetLocation::Map(tileset_index) => {
             let tileset_index = *tileset_index as u32;
             tiled_map
                 .tilesets_label_by_index
                 .get(&tileset_index)
                 .expect("Cannot find tileset path for object tile")
         }
-        TilesetLocation::Template(tileset) => &tileset_label(tileset)
+        tiled::TilesetLocation::Template(tileset) => &tileset_label(tileset)
             .expect("Cannot find object tile from Template")
             .to_owned(),
     };
@@ -583,7 +586,7 @@ fn spawn_image_layer(
     commands: &mut Commands,
     tiled_map: &TiledMapAsset,
     layer_event: &TiledEvent<LayerCreated>,
-    image_layer: ImageLayer,
+    image_layer: tiled::ImageLayer,
     anchor: &TilemapAnchor,
 ) {
     if let Some(image) = &image_layer.image {
@@ -635,7 +638,7 @@ fn spawn_image_layer(
     }
 }
 
-fn get_animated_tile(tile: &Tile) -> Option<AnimatedTile> {
+fn get_animated_tile(tile: &tiled::Tile) -> Option<AnimatedTile> {
     let Some(animation_data) = &tile.animation else {
         return None;
     };

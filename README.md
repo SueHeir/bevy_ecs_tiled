@@ -5,6 +5,7 @@
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/adrien-bon/bevy_ecs_tiled/blob/main/LICENSE)
 [![Crates.io](https://img.shields.io/crates/d/bevy_ecs_tiled)](https://crates.io/crates/bevy_ecs_tiled)
 [![Following released Bevy versions](https://img.shields.io/badge/Bevy%20tracking-released%20version-lightblue)](https://bevyengine.org/learn/quick-start/plugin-development/#main-branch-tracking)
+[![ci](https://github.com/adrien-bon/bevy_ecs_tiled/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/adrien-bon/bevy_ecs_tiled/actions/workflows/ci.yml)
 
 [`bevy_ecs_tiled`](https://github.com/adrien-bon/bevy_ecs_tiled) is a [Bevy](https://bevyengine.org/) plugin for working with 2D tilemaps created using the [Tiled map editor](https://www.mapeditor.org/).
 
@@ -63,8 +64,8 @@ Add the required dependencies to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-bevy = "0.16"
-bevy_ecs_tiled = "0.9"
+bevy = "0.18"
+bevy_ecs_tiled = "0.11"
 ```
 
 ### Basic Usage
@@ -169,7 +170,7 @@ fn spawn_map(
 
 ### More Examples
 
-For more advanced use cases, such as loading worlds, chunking, custom properties, or integrating with physics, see the [examples directory](https://github.com/adrien-bon/bevy_ecs_tiled/tree/main/examples/README.md) in the repository.
+For more advanced use cases, such as loading worlds, chunking, custom properties, or integrating with physics, see the [examples directory](https://github.com/adrien-bon/bevy_ecs_tiled/tree/main/examples/README.md) in the repository and notably the [demo_platformer](https://github.com/adrien-bon/bevy_ecs_tiled/tree/main/examples/demo_platformer/).
 
 You can also refer to the [API documentation](https://docs.rs/bevy_ecs_tiled/latest/bevy_ecs_tiled/) for details on all available components and configuration options.
 
@@ -179,6 +180,8 @@ You can also refer to the [API documentation](https://docs.rs/bevy_ecs_tiled/lat
 
 |bevy|bevy_ecs_tilemap|bevy_ecs_tiled|
 |---|---|---|
+|0.18|0.18|0.11|
+|0.17|0.17|0.10|
 |0.16|0.16|0.7 - 0.9|
 |0.15|0.15|0.5 - 0.6|
 |0.14|0.14|0.3 - 0.4|

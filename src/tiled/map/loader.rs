@@ -15,18 +15,18 @@ use crate::{
 };
 use bevy::{
     asset::{io::Reader, AssetLoader, AssetPath, LoadContext},
+    platform::collections::HashMap,
     prelude::*,
 };
-use bevy_ecs_tilemap::map::{HexCoordSystem, IsoCoordSystem, TilemapTexture};
-use tiled::{ChunkData, LayerType, TilesetLocation};
 
+#[derive(TypePath)]
 struct TiledMapLoader {
     cache: TiledResourceCache,
     #[cfg(feature = "user_properties")]
     registry: bevy::reflect::TypeRegistryArc,
 }
 
-pub(crate) fn tileset_label(tileset: &Tileset) -> Option<String> {
+pub(crate) fn tileset_label(tileset: &tiled::Tileset) -> Option<String> {
     tileset
         .source
         .to_str()
@@ -67,7 +67,7 @@ impl AssetLoader for TiledMapLoader {
 
         info!("Start loading map '{}'", load_context.path().display());
 
-        let map_path = load_context.path().to_path_buf();
+        let map_path = load_context.path().path().to_path_buf();
         let map = {
             // Allow the loader to also load tileset images.
             let mut loader = tiled::Loader::with_cache_and_reader(
@@ -76,7 +76,7 @@ impl AssetLoader for TiledMapLoader {
             );
             // Load the map and all tiles.
             loader
-                .load_tmx_map(&map_path)
+                .load_tmx_map(map_path)
                 .map_err(|e| std::io::Error::other(format!("Could not load TMX map: {e}")))?
         };
 
@@ -109,10 +109,10 @@ impl AssetLoader for TiledMapLoader {
         let mut largest_tile_size = TilemapTileSize::new(grid_size.x, grid_size.y);
         for (layer_index, layer) in map.layers().enumerate() {
             match layer.layer_type() {
-                LayerType::Tiles(tiles_layer) => {
+                tiled::LayerType::Tiles(tiles_layer) => {
                     // Iterate over tiles layers to find the largest tile_size of the map
                     match tiles_layer {
-                        TileLayer::Finite(tiles_finite_layer) => {
+                        tiled::TileLayer::Finite(tiles_finite_layer) => {
                             for x in 0..tiles_finite_layer.width() as i32 {
                                 for y in 0..tiles_finite_layer.height() as i32 {
                                     let Some(tile) = tiles_finite_layer
@@ -129,10 +129,10 @@ impl AssetLoader for TiledMapLoader {
                                 }
                             }
                         }
-                        TileLayer::Infinite(tiles_infinite_layer) => {
+                        tiled::TileLayer::Infinite(tiles_infinite_layer) => {
                             for (_, chunk) in tiles_infinite_layer.chunks() {
-                                for x in 0..ChunkData::WIDTH as i32 {
-                                    for y in 0..ChunkData::HEIGHT as i32 {
+                                for x in 0..tiled::ChunkData::WIDTH as i32 {
+                                    for y in 0..tiled::ChunkData::HEIGHT as i32 {
                                         let Some(tile) =
                                             chunk.get_tile(x, y).and_then(|t| t.get_tile())
                                         else {
@@ -149,14 +149,15 @@ impl AssetLoader for TiledMapLoader {
                         }
                     }
                 }
-                LayerType::Objects(object_layer) => {
+                tiled::LayerType::Objects(object_layer) => {
                     // Iterate over objects layers to load potential external tilesets (templates)
                     for object_data in object_layer.objects() {
                         let Some(tile) = object_data.get_tile() else {
                             continue;
                         };
 
-                        let TilesetLocation::Template(tileset) = tile.tileset_location() else {
+                        let tiled::TilesetLocation::Template(tileset) = tile.tileset_location()
+                        else {
                             continue;
                         };
 
@@ -177,7 +178,7 @@ impl AssetLoader for TiledMapLoader {
                         tilesets.insert(label.to_owned(), tiled_map_tileset);
                     }
                 }
-                LayerType::Image(image_layer) => {
+                tiled::LayerType::Image(image_layer) => {
                     // Load image assets used in image layers
                     let Some(image) = &image_layer.image else {
                         continue;
@@ -222,27 +223,27 @@ impl AssetLoader for TiledMapLoader {
             );
             (
                 TilemapSize {
-                    x: (bottomright.0 - topleft.0 + 1) as u32 * ChunkData::WIDTH,
-                    y: (bottomright.1 - topleft.1 + 1) as u32 * ChunkData::HEIGHT,
+                    x: (bottomright.0 - topleft.0 + 1) as u32 * tiled::ChunkData::WIDTH,
+                    y: (bottomright.1 - topleft.1 + 1) as u32 * tiled::ChunkData::HEIGHT,
                 },
                 match map_type {
                     TilemapType::Square => Vec2 {
-                        x: -topleft.0 as f32 * ChunkData::WIDTH as f32 * grid_size.x,
-                        y: topleft.1 as f32 * ChunkData::HEIGHT as f32 * grid_size.y,
+                        x: -topleft.0 as f32 * tiled::ChunkData::WIDTH as f32 * grid_size.x,
+                        y: topleft.1 as f32 * tiled::ChunkData::HEIGHT as f32 * grid_size.y,
                     },
                     TilemapType::Hexagon(HexCoordSystem::ColumnOdd)
                     | TilemapType::Hexagon(HexCoordSystem::ColumnEven) => Vec2 {
-                        x: -topleft.0 as f32 * ChunkData::WIDTH as f32 * grid_size.x * 0.75,
-                        y: topleft.1 as f32 * ChunkData::HEIGHT as f32 * grid_size.y,
+                        x: -topleft.0 as f32 * tiled::ChunkData::WIDTH as f32 * grid_size.x * 0.75,
+                        y: topleft.1 as f32 * tiled::ChunkData::HEIGHT as f32 * grid_size.y,
                     },
                     TilemapType::Hexagon(HexCoordSystem::RowOdd)
                     | TilemapType::Hexagon(HexCoordSystem::RowEven) => Vec2 {
-                        x: -topleft.0 as f32 * ChunkData::WIDTH as f32 * grid_size.x,
-                        y: topleft.1 as f32 * ChunkData::HEIGHT as f32 * grid_size.y * 0.75,
+                        x: -topleft.0 as f32 * tiled::ChunkData::WIDTH as f32 * grid_size.x,
+                        y: topleft.1 as f32 * tiled::ChunkData::HEIGHT as f32 * grid_size.y * 0.75,
                     },
                     TilemapType::Isometric(IsoCoordSystem::Diamond) => Vec2 {
-                        x: -topleft.0 as f32 * ChunkData::WIDTH as f32 * grid_size.y,
-                        y: -topleft.1 as f32 * ChunkData::HEIGHT as f32 * grid_size.y,
+                        x: -topleft.0 as f32 * tiled::ChunkData::WIDTH as f32 * grid_size.y,
+                        y: -topleft.1 as f32 * tiled::ChunkData::HEIGHT as f32 * grid_size.y,
                     },
                     TilemapType::Isometric(IsoCoordSystem::Staggered) => {
                         panic!("Isometric (Staggered) map is not supported");
@@ -324,11 +325,7 @@ impl AssetLoader for TiledMapLoader {
             #[cfg(feature = "user_properties")]
             properties,
         };
-        debug!(
-            "Loaded map '{}': {:?}",
-            load_context.path().display(),
-            &asset_map,
-        );
+        debug!("Loaded map '{}': {:?}", load_context.path(), &asset_map,);
         Ok(asset_map)
     }
 
@@ -339,7 +336,7 @@ impl AssetLoader for TiledMapLoader {
 }
 
 fn tileset_to_tiled_map_tileset(
-    tileset: Arc<Tileset>,
+    tileset: Arc<tiled::Tileset>,
     load_context: &mut LoadContext<'_>,
     path: &str,
 ) -> Option<TiledMapTileset> {

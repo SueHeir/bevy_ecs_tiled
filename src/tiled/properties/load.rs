@@ -2,6 +2,7 @@ use crate::prelude::*;
 use bevy::{
     asset::LoadContext,
     ecs::reflect::ReflectBundle,
+    platform::collections::HashMap,
     prelude::*,
     reflect::{
         DynamicArray, DynamicEnum, DynamicStruct, DynamicTuple, DynamicTupleStruct, DynamicVariant,
@@ -10,13 +11,14 @@ use bevy::{
     },
 };
 use std::path::PathBuf;
-use tiled::{LayerType, Properties, PropertyValue};
+
+use crate::prelude::tiled::PropertyValue as PV;
 
 #[derive(Debug, Clone)]
 pub(crate) struct DeserializedMapProperties<const HYDRATED: bool = false> {
     pub(crate) map: DeserializedProperties,
     pub(crate) layers: HashMap<u32, DeserializedProperties>,
-    pub(crate) tiles: HashMap<u32, HashMap<TileId, DeserializedProperties>>,
+    pub(crate) tiles: HashMap<u32, HashMap<tiled::TileId, DeserializedProperties>>,
     pub(crate) objects: HashMap<u32, DeserializedProperties>,
 }
 
@@ -37,7 +39,7 @@ impl DeserializedMapProperties<false> {
                 DeserializedProperties::load(&layer.properties, registry, load_context, false),
             );
             match layer.layer_type() {
-                LayerType::Objects(object) => {
+                tiled::LayerType::Objects(object) => {
                     for object in object.objects() {
                         objects.insert(
                             object.id(),
@@ -50,7 +52,7 @@ impl DeserializedMapProperties<false> {
                         );
                     }
                 }
-                LayerType::Group(group) => {
+                tiled::LayerType::Group(group) => {
                     to_process.extend(group.layers());
                 }
                 _ => {}
@@ -116,7 +118,7 @@ impl DeserializedMapProperties<false> {
     }
 }
 
-/// Properties for an entity deserialized from a [`Properties`]
+/// Properties for an entity deserialized from a [`tiled::Properties`]
 #[derive(Debug)]
 pub(crate) struct DeserializedProperties {
     pub(crate) properties: Vec<Box<dyn PartialReflect>>,
@@ -141,11 +143,11 @@ impl DeserializedProperties {
 
         for (name, property) in properties.clone() {
             let (reg_name, reg) = match &property {
-                PropertyValue::ClassValue {
+                PV::ClassValue {
                     property_type,
                     properties: _,
                 } => (property_type, registry.get_with_type_path(property_type)),
-                PropertyValue::FileValue(file) => {
+                PV::FileValue(file) => {
                     props.push(Box::new(load_cx.loader().with_unknown_type().load(file)));
                     continue;
                 }
@@ -191,7 +193,7 @@ impl DeserializedProperties {
 
     fn deserialize_named_field(
         field: &NamedField,
-        properties: &mut Properties,
+        properties: &mut tiled::Properties,
         registration: &TypeRegistration,
         registry: &TypeRegistry,
         load_cx: &mut Option<&mut LoadContext<'_>>,
@@ -229,7 +231,7 @@ impl DeserializedProperties {
 
     fn deserialize_unnamed_field(
         field: &UnnamedField,
-        properties: &mut Properties,
+        properties: &mut tiled::Properties,
         registration: &TypeRegistration,
         registry: &TypeRegistry,
         load_cx: &mut Option<&mut LoadContext<'_>>,
@@ -271,7 +273,7 @@ impl DeserializedProperties {
     }
 
     fn deserialize_property(
-        property: PropertyValue,
+        property: PV,
         registration: &TypeRegistration,
         registry: &TypeRegistry,
         load_cx: &mut Option<&mut LoadContext<'_>>,
@@ -279,7 +281,6 @@ impl DeserializedProperties {
     ) -> Result<Box<dyn PartialReflect>, String> {
         // I wonder if it's possible to call FromStr for String?
         // or ToString/Display?
-        use PropertyValue as PV;
         match (
             registration.type_info().type_path(),
             property,
@@ -292,11 +293,13 @@ impl DeserializedProperties {
             ("i32", PV::IntValue(i), _) => Ok(Box::new(i)),
             ("i64", PV::IntValue(i), _) => Ok(Box::new(i as i64)),
             ("i128", PV::IntValue(i), _) => Ok(Box::new(i as i128)),
+            ("isize", PV::IntValue(i), _) => Ok(Box::new(isize::try_from(i).unwrap())),
             ("u8", PV::IntValue(i), _) => Ok(Box::new(u8::try_from(i).unwrap())),
             ("u16", PV::IntValue(i), _) => Ok(Box::new(u16::try_from(i).unwrap())),
             ("u32", PV::IntValue(i), _) => Ok(Box::new(u32::try_from(i).unwrap())),
             ("u64", PV::IntValue(i), _) => Ok(Box::new(u64::try_from(i).unwrap())),
             ("u128", PV::IntValue(i), _) => Ok(Box::new(u128::try_from(i).unwrap())),
+            ("usize", PV::IntValue(i), _) => Ok(Box::new(usize::try_from(i).unwrap())),
 
             ("f32", PV::FloatValue(f), _) => Ok(Box::new(f)),
             ("f64", PV::FloatValue(f), _) => Ok(Box::new(f as f64)),
@@ -573,7 +576,7 @@ fn object_ref(
 ) -> Option<Box<dyn PartialReflect>> {
     if obj.represents::<Entity>() {
         let obj = Entity::take_from_reflect(obj.to_dynamic()).unwrap();
-        if let Some(&e) = obj_entity_map.get(&obj.index()) {
+        if let Some(&e) = obj_entity_map.get(&obj.index_u32()) {
             Some(Box::new(e))
         } else {
             panic!(
@@ -586,7 +589,7 @@ fn object_ref(
         Some(Box::new(
             Option::<Entity>::take_from_reflect(obj.to_dynamic())
                 .unwrap()
-                .and_then(|obj| obj_entity_map.get(&obj.index()).copied()),
+                .and_then(|obj| obj_entity_map.get(&obj.index_u32()).copied()),
         ))
     } else {
         None
@@ -704,7 +707,7 @@ mod tests {
         registry.register::<EnumComponent>();
 
         let raw_value = EnumComponent::VarB;
-        let tiled_value = PropertyValue::StringValue("VarB".to_string());
+        let tiled_value = PV::StringValue("VarB".to_string());
 
         let res = DeserializedProperties::deserialize_property(
             tiled_value,
@@ -765,29 +768,26 @@ mod tests {
         registry.register::<StructComponent>();
 
         let raw_value = StructComponent::default();
-        let tiled_value = PropertyValue::ClassValue {
+        let tiled_value = PV::ClassValue {
             property_type: StructComponent::type_path().to_string(),
             properties: std::collections::HashMap::from([
-                ("a_float".to_string(), PropertyValue::FloatValue(0.)),
-                (
-                    "an_enum".to_string(),
-                    PropertyValue::StringValue("VarB".to_string()),
-                ),
+                ("a_float".to_string(), PV::FloatValue(0.)),
+                ("an_enum".to_string(), PV::StringValue("VarB".to_string())),
                 (
                     "a_struct".to_string(),
-                    PropertyValue::ClassValue {
+                    PV::ClassValue {
                         property_type: InnerStruct::type_path().to_string(),
                         properties: std::collections::HashMap::from([
-                            ("another_float".to_string(), PropertyValue::FloatValue(0.)),
-                            ("another_integer".to_string(), PropertyValue::IntValue(42)),
+                            ("another_float".to_string(), PV::FloatValue(0.)),
+                            ("another_integer".to_string(), PV::IntValue(42)),
                             (
                                 "another_enum".to_string(),
-                                PropertyValue::StringValue("VarC".to_string()),
+                                PV::StringValue("VarC".to_string()),
                             ),
                         ]),
                     },
                 ),
-                ("an_integer".to_string(), PropertyValue::IntValue(0)),
+                ("an_integer".to_string(), PV::IntValue(0)),
             ]),
         };
 

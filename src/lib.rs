@@ -37,8 +37,8 @@ pub mod prelude {
     };
     #[cfg(feature = "avian")]
     pub use super::physics::backend::avian::TiledPhysicsAvianBackend;
-    #[cfg(feature = "rapier")]
-    pub use super::physics::backend::rapier::TiledPhysicsRapierBackend;
+    // #[cfg(feature = "rapier")]
+    // pub use super::physics::backend::rapier::TiledPhysicsRapierBackend;
     #[cfg(feature = "physics")]
     pub use super::physics::{
         backend::{multi_polygon_as_line_strings, multi_polygon_as_triangles, TiledPhysicsBackend},
@@ -55,7 +55,7 @@ pub mod prelude {
             LayerCreated, MapCreated, ObjectCreated, TileCreated, TiledEvent, TilemapCreated,
             WorldCreated,
         },
-        filter::TiledFilter,
+        filter::{TiledFilter, TiledName},
         helpers::{
             get_layer_from_map, get_object_from_map, get_tile_from_map, get_tileset_from_map,
             grid_size_from_map, tile_size, tilemap_type_from_map,
@@ -77,20 +77,22 @@ pub mod prelude {
         TiledPlugin, TiledPluginConfig,
     };
 
-    // Re-exports from `bevy`
-    pub use bevy::{math::bounding::Aabb2d, platform::collections::HashMap};
-
     // Re-exports from `bevy_ecs_tilemap`:
-    // just take everything since we are so tightly coupled
+    // just take everything since we are tigthly coupled
     pub use bevy_ecs_tilemap::prelude::*;
-    // Re-exports from `tiled`
-    pub use tiled::World as TiledRawWorld; // Avoid name clash with Bevy `World`
-    pub use tiled::{
-        Layer, LayerTile, LayerTileData, Map, Object, Tile, TileId, TileLayer, Tileset,
-    };
-    // Re-exports from 'geo'
-    pub use geo::Polygon as GeoPolygon; // Avoid name clash with Bevy 'Polygon'
-    pub use geo::{Coord, LineString, MultiPoint, MultiPolygon, Point};
-    // Re-exports from 'regex'
-    pub use regex::RegexSet;
+
+    /// Re-exports from [`tiled`](https://crates.io/crates/tiled)
+    pub mod tiled {
+        pub use tiled::*;
+    }
+
+    /// Re-exports from ['geo'](https://crates.io/crates/geo)
+    pub mod geo {
+        pub use geo::*;
+    }
+
+    /// Re-exports from ['regex'](https://crates.io/crates/regex)
+    pub mod regex {
+        pub use regex::*;
+    }
 }
