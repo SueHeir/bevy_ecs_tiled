@@ -65,7 +65,7 @@ impl AssetLoader for TiledMapLoader {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;
 
-        debug!("Start loading map '{}'", load_context.path());
+        info!("Start loading map '{}'", load_context.path().display());
 
         let map_path = load_context.path().path().to_path_buf();
         let map = {
@@ -86,7 +86,7 @@ impl AssetLoader for TiledMapLoader {
         let mut tilesets_label_by_index = HashMap::<u32, String>::default();
 
         for (tileset_index, tileset) in map.tilesets().iter().enumerate() {
-            debug!(
+            info!(
                 "Loading tileset (index={:?} name={:?}) from {:?}",
                 tileset_index, tileset.name, tileset.source
             );
@@ -123,7 +123,7 @@ impl AssetLoader for TiledMapLoader {
                                     };
                                     let tile_size = tile_size(&tile);
                                     if tile_size > largest_tile_size {
-                                        debug!("Update tile_size: {tile_size:?}");
+                                        info!("Update tile_size: {tile_size:?}");
                                         largest_tile_size = tile_size;
                                     }
                                 }
@@ -140,7 +140,7 @@ impl AssetLoader for TiledMapLoader {
                                         };
                                         let tile_size = tile_size(&tile);
                                         if tile_size > largest_tile_size {
-                                            debug!("Update tile_size: {tile_size:?}");
+                                            info!("Update tile_size: {tile_size:?}");
                                             largest_tile_size = tile_size;
                                         }
                                     }
@@ -217,7 +217,7 @@ impl AssetLoader for TiledMapLoader {
         }
 
         let (tilemap_size, tiled_offset) = if infinite {
-            debug!(
+            info!(
                 "(infinite map) topleft = {:?}, bottomright = {:?}",
                 topleft, bottomright
             );
@@ -419,6 +419,279 @@ fn tileset_to_tiled_map_tileset(
     })
 }
 
-pub(crate) fn plugin(app: &mut App) {
-    app.init_asset_loader::<TiledMapLoader>();
+#[derive(Debug)]
+pub struct MapLoaderPlugin {
+    pub config: TiledPluginConfig,
 }
+
+impl Plugin for MapLoaderPlugin {
+    fn build(&self, app: &mut App) {
+        if !self.config.disable_rendering {
+            app.init_asset_loader::<TiledMapLoader>();
+        } else {
+            app.init_asset_loader::<TiledMapLoaderNoRender>();      
+        }
+       
+    }
+}
+
+
+
+
+struct TiledMapLoaderNoRender {
+    cache: TiledResourceCache,
+    #[cfg(feature = "user_properties")]
+    registry: bevy::reflect::TypeRegistryArc,
+}
+
+impl FromWorld for TiledMapLoaderNoRender {
+    fn from_world(world: &mut World) -> Self {
+        Self {
+            cache: world.resource::<TiledResourceCache>().clone(),
+            #[cfg(feature = "user_properties")]
+            registry: world.resource::<AppTypeRegistry>().0.clone(),
+        }
+    }
+}
+
+impl AssetLoader for TiledMapLoaderNoRender {
+    type Asset = TiledMapAsset;
+    type Settings = ();
+    type Error = TiledMapLoaderError;
+
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &Self::Settings,
+        load_context: &mut LoadContext<'_>,
+    ) -> Result<Self::Asset, Self::Error> {
+        let mut bytes = Vec::new();
+        reader.read_to_end(&mut bytes).await?;
+
+        info!("Start loading no render map '{}'", load_context.path().display());
+
+        let map_path = load_context.path().to_path_buf();
+        let map = {
+            // Allow the loader to also load tileset images.
+            let mut loader = tiled::Loader::with_cache_and_reader(
+                self.cache.clone(),
+                BytesResourceReader::new(&bytes, load_context),
+            );
+            // Load the map and all tiles.
+            loader
+                .load_tmx_map(&map_path)
+                .map_err(|e| std::io::Error::other(format!("Could not load TMX map: {e}")))?
+        };
+
+        let map_type = tilemap_type_from_map(&map);
+        let grid_size = grid_size_from_map(&map);
+        let mut tilesets = HashMap::default();
+        let mut tilesets_label_by_index = HashMap::<u32, String>::default();
+
+        // for (tileset_index, tileset) in map.tilesets().iter().enumerate() {
+        //     info!(
+        //         "Loading tileset (index={:?} name={:?}) from {:?}",
+        //         tileset_index, tileset.name, tileset.source
+        //     );
+
+        //     let Some(label) = tileset_label(tileset) else {
+        //         continue;
+        //     };
+
+        //     let Some(tiled_map_tileset) =
+        //         tileset_to_tiled_map_tileset(tileset.clone(), load_context, &label)
+        //     else {
+        //         continue;
+        //     };
+
+        //     tilesets_label_by_index.insert(tileset_index as u32, label.to_owned());
+        //     tilesets.insert(label.to_owned(), tiled_map_tileset);
+        // }
+
+        let mut images = HashMap::default();
+        let mut largest_tile_size = TilemapTileSize::new(grid_size.x, grid_size.y);
+        for (layer_index, layer) in map.layers().enumerate() {
+            match layer.layer_type() {
+                LayerType::Tiles(tiles_layer) => {
+                }
+                LayerType::Objects(object_layer) => {
+                    // Iterate over objects layers to load potential external tilesets (templates)
+                    for object_data in object_layer.objects() {
+                        let Some(tile) = object_data.get_tile() else {
+                            continue;
+                        };
+
+                        let TilesetLocation::Template(tileset) = tile.tileset_location() else {
+                            continue;
+                        };
+
+                        let Some(label) = tileset_label(tileset) else {
+                            continue;
+                        };
+
+                        if tilesets.contains_key(&label) {
+                            continue;
+                        }
+
+                        let Some(tiled_map_tileset) =
+                            tileset_to_tiled_map_tileset(tileset.clone(), load_context, &label)
+                        else {
+                            continue;
+                        };
+
+                        tilesets.insert(label.to_owned(), tiled_map_tileset);
+                    }
+                }
+                LayerType::Image(image_layer) => {
+
+                }
+                _ => continue,
+            }
+        }
+
+        let mut infinite = false;
+
+        // Determine top left chunk index of all infinite layers for this map
+        let mut topleft = (999999, 999999);
+        for layer in map.layers() {
+            if let tiled::LayerType::Tiles(tiled::TileLayer::Infinite(layer)) = layer.layer_type() {
+                topleft = layer.chunks().fold(topleft, |acc, (pos, _)| {
+                    (acc.0.min(pos.0), acc.1.min(pos.1))
+                });
+                infinite = true;
+            }
+        }
+        // Determine bottom right chunk index of all infinite layers for this map
+        let mut bottomright = (0, 0);
+        for layer in map.layers() {
+            if let tiled::LayerType::Tiles(tiled::TileLayer::Infinite(layer)) = layer.layer_type() {
+                bottomright = layer.chunks().fold(bottomright, |acc, (pos, _)| {
+                    (acc.0.max(pos.0), acc.1.max(pos.1))
+                });
+                infinite = true;
+            }
+        }
+
+        let (tilemap_size, tiled_offset) = if infinite {
+            info!(
+                "(infinite map) topleft = {:?}, bottomright = {:?}",
+                topleft, bottomright
+            );
+            (
+                TilemapSize {
+                    x: (bottomright.0 - topleft.0 + 1) as u32 * ChunkData::WIDTH,
+                    y: (bottomright.1 - topleft.1 + 1) as u32 * ChunkData::HEIGHT,
+                },
+                match map_type {
+                    TilemapType::Square => Vec2 {
+                        x: -topleft.0 as f32 * ChunkData::WIDTH as f32 * grid_size.x,
+                        y: topleft.1 as f32 * ChunkData::HEIGHT as f32 * grid_size.y,
+                    },
+                    TilemapType::Hexagon(HexCoordSystem::ColumnOdd)
+                    | TilemapType::Hexagon(HexCoordSystem::ColumnEven) => Vec2 {
+                        x: -topleft.0 as f32 * ChunkData::WIDTH as f32 * grid_size.x * 0.75,
+                        y: topleft.1 as f32 * ChunkData::HEIGHT as f32 * grid_size.y,
+                    },
+                    TilemapType::Hexagon(HexCoordSystem::RowOdd)
+                    | TilemapType::Hexagon(HexCoordSystem::RowEven) => Vec2 {
+                        x: -topleft.0 as f32 * ChunkData::WIDTH as f32 * grid_size.x,
+                        y: topleft.1 as f32 * ChunkData::HEIGHT as f32 * grid_size.y * 0.75,
+                    },
+                    TilemapType::Isometric(IsoCoordSystem::Diamond) => Vec2 {
+                        x: -topleft.0 as f32 * ChunkData::WIDTH as f32 * grid_size.y,
+                        y: -topleft.1 as f32 * ChunkData::HEIGHT as f32 * grid_size.y,
+                    },
+                    TilemapType::Isometric(IsoCoordSystem::Staggered) => {
+                        panic!("Isometric (Staggered) map is not supported");
+                    }
+                    _ => unreachable!(),
+                },
+            )
+        } else {
+            topleft = (0, 0);
+            bottomright = (0, 0);
+            (
+                TilemapSize {
+                    x: map.width,
+                    y: map.height,
+                },
+                Vec2::ZERO,
+            )
+        };
+
+        let rect = Rect {
+            min: Vec2::ZERO,
+            max: match map_type {
+                TilemapType::Square => Vec2 {
+                    x: tilemap_size.x as f32 * grid_size.x,
+                    y: tilemap_size.y as f32 * grid_size.y,
+                },
+                TilemapType::Hexagon(HexCoordSystem::ColumnOdd)
+                | TilemapType::Hexagon(HexCoordSystem::ColumnEven) => Vec2 {
+                    x: tilemap_size.x as f32 * grid_size.x * 0.75,
+                    y: tilemap_size.y as f32 * grid_size.y,
+                },
+                TilemapType::Hexagon(HexCoordSystem::RowOdd)
+                | TilemapType::Hexagon(HexCoordSystem::RowEven) => Vec2 {
+                    x: tilemap_size.x as f32 * grid_size.x,
+                    y: tilemap_size.y as f32 * grid_size.y * 0.75,
+                },
+                TilemapType::Isometric(IsoCoordSystem::Diamond) => {
+                    let topleft = iso_projection(Vec2::ZERO, &tilemap_size, &grid_size);
+                    let topright = iso_projection(
+                        Vec2 {
+                            x: tilemap_size.x as f32 * grid_size.y,
+                            y: 0.,
+                        },
+                        &tilemap_size,
+                        &grid_size,
+                    );
+
+                    2. * (topright - topleft)
+                }
+                TilemapType::Isometric(IsoCoordSystem::Staggered) => {
+                    panic!("Isometric (Staggered) map is not supported");
+                }
+                _ => unreachable!(),
+            },
+        };
+
+        #[cfg(feature = "user_properties")]
+        let properties = crate::tiled::properties::load::DeserializedMapProperties::load(
+            &map,
+            self.registry.read().deref(),
+            load_context,
+        );
+
+        #[cfg(feature = "user_properties")]
+        trace!(?properties, "user properties");
+        info!(?tilesets, "tilesets");
+
+        let asset_map = TiledMapAsset {
+            map,
+            tilemap_size,
+            largest_tile_size,
+            tiled_offset,
+            rect,
+            topleft_chunk: topleft,
+            bottomright_chunk: bottomright,
+            tilesets,
+            tilesets_label_by_index,
+            images,
+            #[cfg(feature = "user_properties")]
+            properties,
+        };
+        info!(
+            "Loaded map '{}': {:?}",
+            load_context.path().display(),
+            &asset_map,
+        );
+        Ok(asset_map)
+    }
+
+    fn extensions(&self) -> &[&str] {
+        static EXTENSIONS: &[&str] = &["tmx"];
+        EXTENSIONS
+    }
+}
+

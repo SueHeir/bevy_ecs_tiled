@@ -5,7 +5,12 @@
 //! enabling the rendering and interaction of Tiled maps within a Bevy application.
 
 use crate::{prelude::*, tiled::event::TiledMessageWriters, tiled::layer::TiledLayerParallax};
-use bevy::{platform::collections::HashMap, prelude::*, sprite::Anchor};
+use bevy::{gizmos::config, prelude::*, sprite::Anchor};
+use bevy_ecs_tilemap::prelude::{
+    AnimatedTile, IsoCoordSystem, TileBundle, TileFlip, TileStorage, TileTextureIndex, TilemapId,
+    TilemapTexture,
+};
+use tiled::{ImageLayer, LayerType, ObjectLayer, TilesetLocation};
 
 #[cfg(feature = "render")]
 use bevy_ecs_tilemap::prelude::{TilemapBundle, TilemapSpacing};
@@ -25,6 +30,7 @@ pub(crate) fn spawn_map(
     layer_z_offset: &TiledMapLayerZOffset,
     message_writers: &mut TiledMessageWriters,
     anchor: &TilemapAnchor,
+    config: &TiledPluginConfig,
 ) {
     commands.entity(map_entity).insert(Name::new(format!(
         "TiledMap: {}",
@@ -85,7 +91,8 @@ pub(crate) fn spawn_map(
             .to_owned();
 
         match layer.layer_type() {
-            tiled::LayerType::Tiles(tile_layer) => {
+            LayerType::Tiles(tile_layer) => {
+               
                 commands.entity(layer_entity).insert((
                     Name::new(format!("TiledMapTileLayer({})", layer.name)),
                     TiledLayer::Tiles,
@@ -101,7 +108,9 @@ pub(crate) fn spawn_map(
                     &mut tilemap_events,
                     &mut tile_events,
                     anchor,
+                    config,
                 );
+                
             }
             tiled::LayerType::Objects(object_layer) => {
                 commands.entity(layer_entity).insert((
@@ -187,13 +196,14 @@ fn spawn_tiles_layer(
     commands: &mut Commands,
     tiled_map: &TiledMapAsset,
     layer_event: &TiledEvent<LayerCreated>,
-    layer: tiled::Layer,
-    tiles_layer: tiled::TileLayer,
-    _render_settings: &TilemapRenderSettings,
-    entity_map: &mut HashMap<(u32, tiled::TileId), Vec<Entity>>,
+    layer: Layer,
+    tiles_layer: TileLayer,
+    render_settings: &TilemapRenderSettings,
+    entity_map: &mut HashMap<(u32, TileId), Vec<Entity>>,
     tilemap_events: &mut Vec<TiledEvent<TilemapCreated>>,
     tile_events: &mut Vec<TiledEvent<TileCreated>>,
     _anchor: &TilemapAnchor,
+    config: &TiledPluginConfig,
 ) {
     // The `TilemapBundle` requires that all tile images come exclusively from a single
     // tiled texture or from a Vec of independent per-tile images. Furthermore, all of
@@ -248,30 +258,32 @@ fn spawn_tiles_layer(
 
         #[cfg(feature = "render")]
         {
-            let grid_size = grid_size_from_map(&tiled_map.map);
-            commands.entity(tilemap_entity).insert(TilemapBundle {
-                grid_size,
-                size: tiled_map.tilemap_size,
-                storage: _tile_storage,
-                texture: t.tilemap_texture.clone(),
-                tile_size: TilemapTileSize {
-                    x: tileset.tile_width as f32,
-                    y: tileset.tile_height as f32,
-                },
-                spacing: TilemapSpacing {
-                    x: tileset.spacing as f32,
-                    y: tileset.spacing as f32,
-                },
-                transform: Transform::from_xyz(
-                    tileset.offset_x as f32,
-                    -tileset.offset_y as f32,
-                    0.0,
-                ),
-                map_type: tilemap_type_from_map(&tiled_map.map),
-                render_settings: *_render_settings,
-                anchor: *_anchor,
-                ..default()
-            });
+            if !config.disable_rendering {
+                let grid_size = grid_size_from_map(&tiled_map.map);
+                commands.entity(tilemap_entity).insert(TilemapBundle {
+                    grid_size,
+                    size: tiled_map.tilemap_size,
+                    storage: _tile_storage,
+                    texture: t.tilemap_texture.clone(),
+                    tile_size: TilemapTileSize {
+                        x: tileset.tile_width as f32,
+                        y: tileset.tile_height as f32,
+                    },
+                    spacing: TilemapSpacing {
+                        x: tileset.spacing as f32,
+                        y: tileset.spacing as f32,
+                    },
+                    transform: Transform::from_xyz(
+                        tileset.offset_x as f32,
+                        -tileset.offset_y as f32,
+                        0.0,
+                    ),
+                    map_type: tilemap_type_from_map(&tiled_map.map),
+                    render_settings: *render_settings,
+                    anchor: *_anchor,
+                    ..default()
+                });
+              }
         }
     }
 }

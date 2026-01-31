@@ -21,7 +21,7 @@ pub(crate) mod reader;
 #[cfg(feature = "user_properties")]
 pub mod properties;
 
-use crate::prelude::*;
+use crate::{prelude::*, tiled::map::{loader::MapLoaderPlugin, MapPlugin}};
 use bevy::prelude::*;
 use std::{env, path::PathBuf};
 
@@ -53,6 +53,9 @@ pub struct TiledPluginConfig {
     ///
     /// Only types matching this filter will be exported at startup.
     pub tiled_types_filter: TiledFilter,
+
+    /// Disable all rendering of tilemaps.
+    pub disable_rendering: bool,
 }
 
 impl Default for TiledPluginConfig {
@@ -62,6 +65,7 @@ impl Default for TiledPluginConfig {
         Self {
             tiled_types_export_file: Some(path),
             tiled_types_filter: TiledFilter::All,
+            disable_rendering: false,
         }
     }
 }
@@ -83,16 +87,21 @@ pub struct TiledPlugin(pub TiledPluginConfig);
 
 impl Plugin for TiledPlugin {
     fn build(&self, mut app: &mut App) {
-        if !app.is_plugin_added::<bevy_ecs_tilemap::TilemapPlugin>() {
-            app = app.add_plugins(bevy_ecs_tilemap::TilemapPlugin);
+
+        if !self.0.disable_rendering {
+            if !app.is_plugin_added::<bevy_ecs_tilemap::TilemapPlugin>() {
+                app = app.add_plugins(bevy_ecs_tilemap::TilemapPlugin);
+            }
         }
+
+       
 
         app.insert_resource(self.0.clone());
         app.insert_resource(cache::TiledResourceCache::new());
         app.register_type::<TiledPluginConfig>();
 
         app.add_plugins((
-            map::plugin,
+            MapPlugin{ config: self.0.clone() },
             world::plugin,
             animation::plugin,
             cache::plugin,
